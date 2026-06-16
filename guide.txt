@@ -1,6 +1,0 @@
-Скопировать репозиторий: git clone https://github.com/1dreamM1/ASCII-generator
-Открыть папку проекта в VS Code.
-Открыть терминал и создать виртуальное окружение: python -m venv venv
-Активировать окружение: venv\Scripts\activate
-Установить зависимости: pip install -r requirements.txt
-Запустить сервер: uvicorn app.main:app --reload
