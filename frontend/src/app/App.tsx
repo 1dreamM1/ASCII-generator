@@ -586,56 +586,109 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     if (file) setUploadedFile(file);
   }, []);
 
-const handleUpload = async () => {
-    if (!uploadedFile && !urlInput) return;
+// Функция для отрисовки сырого текста ASCII на Canvas
+  const drawAsciiTextToCanvas = (asciiText: string) => {
+    const canvas = outputCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    setProcessing(true);
-    setAsciiReady(false);
+    const lines = asciiText.split('\n');
+    
+    // Настройки шрифта
+    const fontSize = 10; // Размер шрифта можно сделать зависимым от density
+    const lineHeight = fontSize * 1.2;
+    ctx.font = `${fontSize}px 'Share Tech Mono', monospace`;
 
-    try {
-      let fileToUpload: File | Blob | null = uploadedFile;
-
-      // Если файла нет, но есть URL, пробуем скачать картинку
-      if (!fileToUpload && urlInput) {
-        const res = await fetch(urlInput);
-        if (!res.ok) throw new Error("Не удалось загрузить изображение по URL");
-        fileToUpload = await res.blob();
-      }
-
-      if (!fileToUpload) throw new Error("Нет файла для отправки");
-
-      // Формируем данные для бэкенда (соответствует аргументам FastAPI Form(...))
-      const formData = new FormData();
-      // Имя файла важно передать, чтобы бэкенд смог определить расширение (file.filename)
-      formData.append("file", fileToUpload, uploadedFile?.name || "image.jpg");
-      formData.append("width", density.toString());
-      formData.append("invert", inverted.toString());
-      formData.append("mode", "text");
-
-      // Отправляем запрос на бэкенд
-      const response = await fetch("/api/v1/convert", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || `Ошибка сервера: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const asciiText = data.ascii; // Получаем сгенерированный текст от сервера
-
-      // Отрисовка полученного от сервера текста на Canvas
-      drawAsciiTextToCanvas(asciiText);
-
-    } catch (error: any) {
-      console.error(error);
-      alert(error.message); // Для уведомления пользователя об ошибке
-    } finally {
-      setProcessing(false);
+    // Вычисляем ширину и высоту холста по объему текста
+    let maxLineWidth = 0;
+    for (const line of lines) {
+      const metrics = ctx.measureText(line);
+      if (metrics.width > maxLineWidth) maxLineWidth = metrics.width;
     }
+
+    const padding = 20;
+    const canvasWidth = Math.ceil(maxLineWidth) + padding * 2;
+    const canvasHeight = Math.ceil(lines.length * lineHeight) + padding * 2;
+
+    // Установка размеров с учетом плотности пикселей (DPR)
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasWidth * dpr;
+    canvas.height = canvasHeight * dpr;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    
+    // Заливка фона черным
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Цвет текста (из настроек интерфейса)
+    ctx.fillStyle = activeColor.hex || "#00ff41"; 
+    ctx.font = `${fontSize}px 'Share Tech Mono', monospace`;
+    ctx.textBaseline = "top";
+
+    // Отрисовка строк
+    lines.forEach((line, index) => {
+      ctx.fillText(line, padding, padding + index * lineHeight);
+    });
+
+    // Сохранение результата в state для скачивания и галереи
+    setAsciiDataUrl(canvas.toDataURL("image/png"));
+    setAsciiReady(true);
   };
+
+  const handleUpload = async () => {
+      if (!uploadedFile && !urlInput) return;
+  
+      setProcessing(true);
+      setAsciiReady(false);
+  
+      try {
+        let fileToUpload: File | Blob | null = uploadedFile;
+  
+        // Если файла нет, но есть URL, пробуем скачать картинку
+        if (!fileToUpload && urlInput) {
+          const res = await fetch(urlInput);
+          if (!res.ok) throw new Error("Не удалось загрузить изображение по URL");
+          fileToUpload = await res.blob();
+        }
+  
+        if (!fileToUpload) throw new Error("Нет файла для отправки");
+  
+        // Формируем данные для бэкенда (соответствует аргументам FastAPI Form(...))
+        const formData = new FormData();
+        // Имя файла важно передать, чтобы бэкенд смог определить расширение (file.filename)
+        formData.append("file", fileToUpload, uploadedFile?.name || "image.jpg");
+        formData.append("width", density.toString());
+        formData.append("invert", inverted.toString());
+        formData.append("mode", "text");
+  
+        // Отправляем запрос на бэкенд
+        const response = await fetch("/api/v1/convert", {
+          method: "POST",
+          body: formData,
+        });
+  
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Ошибка сервера: ${response.status}`);
+        }
+  
+        const data = await response.json();
+        const asciiText = data.ascii; // Получаем сгенерированный текст от сервера
+  
+        // Отрисовка полученного от сервера текста на Canvas
+        drawAsciiTextToCanvas(asciiText);
+  
+      } catch (error: any) {
+        console.error(error);
+        alert(error.message); // Для уведомления пользователя об ошибке
+      } finally {
+        setProcessing(false);
+      }
+    };
 
   const handleSaveToGallery = () => {
     if (!asciiReady || !asciiDataUrl) return;
