@@ -3,52 +3,55 @@ import uuid
 import shutil
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from app.ascii_engine import process_image_to_ascii  # Импортируем наше ядро
 
 app = FastAPI(title="VIRGA ASCII Generator API")
 
-# Папки для хранения файлов
+# Настройка CORS (КРИТИЧЕСКИ ВАЖНО для работы с фронтендом)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешаем запросы с любых портов (от Vite)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 UPLOAD_DIR = "uploads"
 OUTPUT_DIR = "outputs"
-FRONTEND_DIR = "frontend"
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(FRONTEND_DIR, exist_ok=True)
 
-# Заглушка базовой навигации: раздача интерфейса
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+# Раздаем папку с готовыми результатами
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
-
-@app.get("/")
-async def read_index():
-    """Отдача главной страницы интерфейса"""
-    index_path = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "Поместите верстку в папку frontend"}
 
 @app.post("/api/v1/convert")
 async def convert_media(file: UploadFile = File(...), mode: str = Form("text")):
-    """Заглушка конвертера с использованием UUID (без БД)"""
+    # 1. Генерируем уникальные имена
     file_ext = file.filename.split('.')[-1]
     job_id = str(uuid.uuid4())
     
     input_filename = f"{job_id}_in.{file_ext}"
     input_filepath = os.path.join(UPLOAD_DIR, input_filename)
     
-    # Сохраняем оригинал
+    # 2. Сохраняем оригинальную картинку
     with open(input_filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    # Заглушка генерации результата
+    # 3. Запускаем реальную генерацию ASCII
     output_filename = f"{job_id}_out.txt"
     output_filepath = os.path.join(OUTPUT_DIR, output_filename)
     
-    with open(output_filepath, "w") as f:
-        f.write("Тут будет ASCII-art генерация файла " + file.filename)
+    success = process_image_to_ascii(input_filepath, output_filepath)
+    
+    if not success:
+        return JSONResponse(status_code=500, content={"message": "Ошибка обработки изображения"})
         
+    # 4. Отдаем ссылку на результат. 
+    # Включаем полный путь с localhost:8000, чтобы фронтенду было проще скачать файл
     return {
         "status": "success",
-        "result_url": f"/outputs/{output_filename}"
+        "result_url": f"http://localhost:8000/outputs/{output_filename}"
     }
