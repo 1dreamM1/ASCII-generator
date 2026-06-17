@@ -586,78 +586,54 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     if (file) setUploadedFile(file);
   }, []);
 
-  const handleUpload = async () => {
+const handleUpload = async () => {
     if (!uploadedFile && !urlInput) return;
 
     setProcessing(true);
     setAsciiReady(false);
-    let source: string | undefined;
-
-    if (uploadedFile) {
-      source = URL.createObjectURL(uploadedFile);
-    } else {
-      source = urlInput.trim();
-    }
 
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = source;
+      let fileToUpload: File | Blob | null = uploadedFile;
 
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Не удалось загрузить изображение"));
+      // Если файла нет, но есть URL, пробуем скачать картинку
+      if (!fileToUpload && urlInput) {
+        const res = await fetch(urlInput);
+        if (!res.ok) throw new Error("Не удалось загрузить изображение по URL");
+        fileToUpload = await res.blob();
+      }
+
+      if (!fileToUpload) throw new Error("Нет файла для отправки");
+
+      // Формируем данные для бэкенда (соответствует аргументам FastAPI Form(...))
+      const formData = new FormData();
+      // Имя файла важно передать, чтобы бэкенд смог определить расширение (file.filename)
+      formData.append("file", fileToUpload, uploadedFile?.name || "image.jpg");
+      formData.append("width", density.toString());
+      formData.append("invert", inverted.toString());
+      formData.append("mode", "text");
+
+      // Отправляем запрос на бэкенд
+      const response = await fetch("/api/v1/convert", {
+        method: "POST",
+        body: formData,
       });
 
-      const canvas = outputCanvasRef.current;
-      if (!canvas) return;
-
-      const wrapper = canvas.parentElement;
-      const rect = wrapper?.getBoundingClientRect();
-      const wrapperWidth = rect ? Math.max(240, Math.min(860, Math.floor(rect.width))) : Math.min(860, Math.max(240, img.width));
-      const wrapperHeight = rect ? Math.max(120, Math.floor(rect.height)) : Math.max(120, Math.round((wrapperWidth * img.height) / img.width));
-      const aspectRatio = img.width / img.height;
-      let displayWidth = wrapperWidth;
-      let displayHeight = Math.round(displayWidth / aspectRatio);
-      if (displayHeight > wrapperHeight) {
-        displayHeight = wrapperHeight;
-        displayWidth = Math.round(displayHeight * aspectRatio);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || `Ошибка сервера: ${response.status}`);
       }
-      const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = Math.max(1, Math.floor(displayWidth * dpr));
-      canvas.height = Math.max(1, Math.floor(displayHeight * dpr));
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
-      canvas.style.background = "transparent";
+      const data = await response.json();
+      const asciiText = data.ascii; // Получаем сгенерированный текст от сервера
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Отрисовка полученного от сервера текста на Canvas
+      drawAsciiTextToCanvas(asciiText);
 
-      const colorMode: ColorMode = activeColor.hex ? "fullcolor" : "grayscale";
-      const opts = {
-        ...DEFAULT_OPTIONS,
-        fontSize: Math.max(6, Math.round(12 - (density - 20) / 14)),
-        colorMode,
-        invert: inverted,
-        hoverStrength: 0,
-        renderMode: "ascii" as const,
-      };
-
-      const { frame } = imageToAsciiFrame(img, opts, displayWidth, displayHeight);
-      renderFrameToCanvas(ctx, frame, opts, displayWidth, displayHeight);
-
-      setAsciiDataUrl(canvas.toDataURL("image/png"));
-      setAsciiReady(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      alert(error.message); // Для уведомления пользователя об ошибке
     } finally {
       setProcessing(false);
-      if (uploadedFile && source?.startsWith("blob:")) {
-        URL.revokeObjectURL(source);
-      }
     }
   };
 
