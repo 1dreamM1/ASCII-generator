@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 <html>
   <head>
@@ -54,3 +55,61 @@
     </script>
   </body>
 </html>
+=======
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ASCII Alpha Test Root</title>
+  </head>
+  <body>
+    <div id="status">running</div>
+    <script type="module">
+      import { imageToAsciiFrame, renderFrameToCanvas, DEFAULT_OPTIONS } from './node_modules/asciify-engine/dist/index.js';
+      (async () => {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+          await img.decode();
+
+          const width = 120;
+          const height = 60;
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.style.background = 'transparent';
+
+          const dpr = window.devicePixelRatio || 1;
+          const ctx = canvas.getContext('2d', { alpha: true });
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+          const opts = { ...DEFAULT_OPTIONS, fontSize: 8, renderMode: 'ascii', charAspect: 0.55, colorMode: 'grayscale' };
+          const { frame } = imageToAsciiFrame(img, opts, width, height);
+          renderFrameToCanvas(ctx, frame, opts, width, height);
+
+          document.body.appendChild(canvas);
+
+          const dataUrl = canvas.toDataURL('image/png');
+          const verifier = document.createElement('canvas');
+          verifier.width = width;
+          verifier.height = height;
+          const vctx = verifier.getContext('2d', { alpha: true });
+          const exported = new Image();
+          exported.src = dataUrl;
+          await exported.decode();
+          vctx.drawImage(exported, 0, 0);
+          const imgd = vctx.getImageData(0, 0, 1, 1).data;
+          const alpha = imgd[3];
+          const out = document.getElementById('status');
+          out.textContent = `alpha=${alpha}`;
+          console.log('alpha sample', imgd);
+        } catch (err) {
+          console.error(err);
+          document.getElementById('status').textContent = 'error';
+        }
+      })();
+    </script>
+  </body>
+</html>
+>>>>>>> 84254e0 (Initial commit)
