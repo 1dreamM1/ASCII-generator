@@ -27,6 +27,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  base: '/ASCII-generator/',
   resolve: {
     alias: {
       // Alias @ to the src directory
