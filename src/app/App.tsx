@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import craneImage from "@/imports/_______.png";
+import craneImage from "@/imports/crane.png";
 import virgaLogo from "@/imports/virgalogo.png";
 import astronautAscii from "@/ascii/astronaut.ascii.png";
 import breakingBadAscii from "@/ascii/Breaking_Bad.ascii.png";
