@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import craneImage from "@/imports/crane.png";
+import craneImage from "@/imports/_______.png";
 import virgaLogo from "@/imports/virgalogo.png";
 import astronautAscii from "@/ascii/astronaut.ascii.png";
 import breakingBadAscii from "@/ascii/Breaking_Bad.ascii.png";
@@ -17,8 +17,6 @@ import {
   Film, MoreHorizontal, ChevronDown, X, RefreshCw, Eye, EyeOff,
 } from "lucide-react";
 import { asciifyVideo, imageToAsciiFrame, renderFrameToCanvas, DEFAULT_OPTIONS, CHARSETS, type ColorMode } from "asciify-engine";
-// @ts-ignore
-import GIF from "gif.js";
 
 type Page = "home" | "conversion" | "gallery";
 
@@ -32,8 +30,10 @@ type GalleryItem = {
   time?: string;
   createdAt?: number;
   src?: string;
-  /** Optional original source image (data URL) saved alongside the processed asset */
+  /** Optional original source image/video saved alongside the processed asset */
   originalSrc?: string;
+  /** Mark if this saved gallery item is already a processed video file */
+  isProcessedVideo?: boolean;
 };
 
 /* ─────────────────────────────────────────
@@ -165,11 +165,6 @@ function SeeHistoryButton({ label, onClick }: { label: string; onClick?: () => v
 }
 
 /* ─────────────────────────────────────────
-   Dark Theme tab — hangs from header
-───────────────────────────────────────── */
-// DarkThemeButton removed
-
-/* ─────────────────────────────────────────
    Generic Dropdown
 ───────────────────────────────────────── */
 function Dropdown({
@@ -240,8 +235,6 @@ function Header({ page, onNavigate }: { page: Page; onNavigate: (p: Page, initia
       className="relative flex items-center justify-between px-5 border-b border-[#111] z-30 flex-shrink-0"
       style={{ height: "40px", background: "#000" }}
     >
-      {/* Dark Theme removed */}
-
       {/* Logo + breadcrumb */}
       <div className="flex items-center gap-1" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "12px" }}>
         <button
@@ -289,6 +282,29 @@ function Header({ page, onNavigate }: { page: Page; onNavigate: (p: Page, initia
 function HomePage({ onNavigate }: { onNavigate: (p: Page, initialAsciiSrc?: string, initialName?: string) => void }) {
   const [matrixVisible, setMatrixVisible] = useState(true);
   const [matrixBtnPressed, setMatrixBtnPressed] = useState(false);
+  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const [copyToastDismissed, setCopyToastDismissed] = useState(false);
+
+  const hideCopyToast = () => {
+    setCopyToastDismissed(true);
+    window.setTimeout(() => {
+      setCopyToastVisible(false);
+      setCopyToastDismissed(false);
+    }, 320);
+  };
+
+  const handleCopySite = async () => {
+    try {
+      await navigator.clipboard.writeText("virgaascii.ru");
+      setCopyToastVisible(true);
+      setCopyToastDismissed(false);
+      window.setTimeout(() => {
+        if (!copyToastDismissed) hideCopyToast();
+      }, 1800);
+    } catch (error) {
+      console.warn("Clipboard copy failed", error);
+    }
+  };
 
   return (
     <div className="relative flex-1 overflow-hidden" style={{ background: "#000" }}>
@@ -354,13 +370,38 @@ function HomePage({ onNavigate }: { onNavigate: (p: Page, initialAsciiSrc?: stri
           {"< GENERATE. TRANSFORM. INSPIRE />"}
         </p>
 
-        {/* Virga logo image (replaces ASCII art text) */}
-        <div className="mb-7" style={{ maxWidth: "520px" }}>
-          <ImageWithFallback
-            src={virgaLogo}
-            alt="VIRGA ASCII logo"
-            className="w-full object-contain object-left"
-          />
+        {/* Virga logo image with glowing red blur */}
+        <div className="mb-7" style={{ maxWidth: "520px", position: "relative" }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 0,
+              opacity: 0.38,
+              filter: "blur(20px) brightness(1.3) saturate(2)",
+              background: "rgba(255,0,0,0.12)",
+            }}
+          >
+            <ImageWithFallback
+              src={virgaLogo}
+              alt="VIRGA ASCII logo glow"
+              className="w-full h-full object-contain object-left"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                filter: "sepia(1) saturate(10) hue-rotate(-20deg) brightness(1.1)",
+              }}
+            />
+          </div>
+
+          <div style={{ position: "relative", zIndex: 10 }}>
+            <ImageWithFallback
+              src={virgaLogo}
+              alt="VIRGA ASCII logo"
+              className="w-full object-contain object-left"
+            />
+          </div>
         </div>
 
         {/* Heading */}
@@ -403,28 +444,53 @@ function HomePage({ onNavigate }: { onNavigate: (p: Page, initialAsciiSrc?: stri
 
         {/* Social icons */}
         <div className="flex items-center gap-6 pl-1">
-          <SocialIcon href="#" title="Telegram">
+          <SocialIcon href="https://t.me/starpirs" title="Telegram">
             <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: "28px", height: "28px" }}>
               <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 14.527l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.646.059z" />
             </svg>
           </SocialIcon>
-          <SocialIcon href="#" title="GitHub">
+          <SocialIcon href="https://github.com/" title="GitHub">
             <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: "28px", height: "28px" }}>
               <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
             </svg>
           </SocialIcon>
-          <SocialIcon href="#" title="Google">
+          <SocialIcon title="Copy virgaascii.ru" onClick={handleCopySite}>
             <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: "28px", height: "28px" }}>
               <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z" />
             </svg>
           </SocialIcon>
-          <SocialIcon href="#" title="Discord">
+          <SocialIcon href="https://discord.com/invite/example" title="Discord">
             <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: "28px", height: "28px" }}>
               <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
             </svg>
           </SocialIcon>
         </div>
       </div>
+      {copyToastVisible && (
+        <div
+          onClick={hideCopyToast}
+          style={{
+            position: "fixed",
+            bottom: copyToastDismissed ? "-80px" : "26px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            opacity: copyToastDismissed ? 0 : 1,
+            transition: "bottom 0.32s ease, opacity 0.32s ease",
+            background: "rgba(0, 255, 65, 0.12)",
+            border: "1px solid rgba(0, 255, 65, 0.3)",
+            color: "#c8ffc8",
+            padding: "12px 16px",
+            borderRadius: "12px",
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: "12px",
+            backdropFilter: "blur(8px)",
+            zIndex: 50,
+            cursor: "pointer",
+          }}
+        >
+          Скопировано: virgaascii.ru
+        </div>
+      )}
     </div>
   );
 }
@@ -458,11 +524,17 @@ function ActionButton({ label, variant, onClick }: { label: string; variant: "pr
   );
 }
 
-function SocialIcon({ href, title, children }: { href: string; title: string; children: ReactNode }) {
+function SocialIcon({ href, title, children, onClick }: { href?: string; title: string; children: ReactNode; onClick?: () => void }) {
   return (
     <a
-      href={href}
+      href={href ?? "#"}
       title={title}
+      onClick={(event) => {
+        if (onClick) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       className="text-[#444] hover:text-[#00ff41] transition-colors duration-200 hover:scale-125 inline-block"
       style={{ transition: "color 0.2s, transform 0.2s" }}
     >
@@ -493,8 +565,18 @@ const SWATCHES = [
   { hex: "#ce93d8", label: "PURPLE" },
 ];
 
+// Scale density: 20-120 unchanged, 140+ boost to make visible difference
+// 140 -> 180, 160 -> 220, 180 -> 260, 200 -> 300
+function scaleDensity(density: number): number {
+  if (density <= 120) return density;
+  // For 140-200: scale up by approximately 1.4x
+  // 140 = 180, 160 = 220, 180 = 260, 200 = 300
+  const boost = (density - 120) * 2.86; // (180-140) / (140-120) ≈ 2.86
+  return Math.round(120 + boost);
+}
+
 function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initialName }: { onNavigate: (p: Page, initialAsciiSrc?: string, initialName?: string) => void; onSaveGalleryItem: (item: GalleryItem) => void; initialAsciiSrc?: string; initialName?: string; }) {
-  const [density, setDensity] = useState(100);
+  const [density, setDensity] = useState(100); // Increased for larger ASCII grid like asciify.org
   const [isSaveModalOpen, setSaveModalOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [mode, setMode] = useState("GRAYSCALE");
@@ -517,8 +599,12 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   const [asciiDataUrl, setAsciiDataUrl] = useState("");
   const [asciiText, setAsciiText] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingLabel, setProcessingLabel] = useState("");
   const [monoColor, setMonoColor] = useState(false);
   const videoRenderStopRef = useRef<(() => void) | null>(null);
+  const videoPlaybackRef = useRef<HTMLVideoElement | null>(null);
+  const videoRenderCacheRef = useRef<Map<string, { blob: Blob; width: number; height: number; cssWidth: string; cssHeight: string }>>(new Map());
   const [customColor, setCustomColor] = useState("#ffd740");
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
@@ -535,11 +621,12 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   const cachedImageRef = useRef<{ src: string; img: HTMLImageElement } | null>(null);
   const renderRequestIdRef = useRef(0);
   const renderTimerRef = useRef<number | null>(null);
+  const suppressNextAutoStartRef = useRef(false);
   const [invPressed, setInvPressed] = useState(false);
   // Refs for storing processed outputs
-  const gifBlobRef = useRef<Blob | null>(null);
   const videoBlobRef = useRef<Blob | null>(null);
   const processingVideoRef = useRef(false);
+  const [awaitingStartProcessing, setAwaitingStartProcessing] = useState(false);
 
   const activeColor = useMemo(() => {
     if (colorLabel === "CUSTOM") {
@@ -547,6 +634,22 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     }
     return COLOR_OPTIONS.find((c) => c.label === colorLabel) ?? COLOR_OPTIONS[0];
   }, [colorLabel, customColor]);
+
+  const isVideoSource = useMemo(() => {
+    const f = currentSourceFile ?? uploadedFile;
+    if (f && f.type) {
+      return f.type.startsWith("video");
+    }
+    if (currentSourceName) {
+      const n = currentSourceName.toLowerCase();
+      if (n.endsWith(".mp4") || n.endsWith(".webm") || n.endsWith(".mov") || n.endsWith(".mkv")) return true;
+    }
+    if (currentSource) {
+      const s = String(currentSource).toLowerCase();
+      if (s.includes(".mp4") || s.includes(".webm") || s.includes("video")) return true;
+    }
+    return false;
+  }, [currentSourceFile, uploadedFile, currentSourceName, currentSource]);
 
   useEffect(() => {
     if (!initialAsciiSrc) return;
@@ -597,6 +700,178 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     }
   }, []);
 
+  const stopVideoPlayback = useCallback(() => {
+    const videoEl = videoPlaybackRef.current;
+    if (!videoEl) return;
+    videoEl.pause();
+    try {
+      if (videoEl.src.startsWith("blob:")) {
+        URL.revokeObjectURL(videoEl.src);
+      }
+    } catch {
+      // ignore
+    }
+    if (videoEl.isConnected) {
+      videoEl.remove();
+    }
+    videoPlaybackRef.current = null;
+  }, []);
+
+  const stopAllProcessing = useCallback(() => {
+    try {
+      // stop any scheduled render
+      stopPendingRender();
+    } catch {
+      // ignore
+    }
+    try {
+      stopAsciiVideo();
+    } catch {
+      // ignore
+    }
+    try {
+      stopVideoPlayback();
+    } catch {
+      // ignore
+    }
+
+    // Invalidate any ongoing render requests and timers
+    try {
+      if (renderTimerRef.current) {
+        window.clearTimeout(renderTimerRef.current);
+        renderTimerRef.current = null;
+      }
+    } catch {
+      // ignore
+    }
+    renderRequestIdRef.current += 1;
+    processingVideoRef.current = false;
+    try {
+      setProcessing(false);
+    } catch {
+      // ignore in SSR
+    }
+    try {
+      setAsciiReady(false);
+      setProcessingProgress(0);
+      setProcessingLabel("");
+    } catch {
+      // ignore
+    }
+
+    // Revoke any temporary blob URL used for uploaded source
+    try {
+      if (currentBlobUrlRef.current && currentBlobUrlRef.current.startsWith("blob:")) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+      }
+      currentBlobUrlRef.current = null;
+    } catch {
+      // ignore
+    }
+  }, [stopAsciiVideo, stopVideoPlayback]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        stopAllProcessing();
+      } catch {
+        // ignore
+      }
+    };
+  }, [stopAllProcessing]);
+
+  const playProcessedVideoOnCanvas = useCallback(async (blob: Blob, canvas: HTMLCanvasElement, width: number, height: number, cssWidth: string, cssHeight: string) => {
+    stopAsciiVideo();
+    stopVideoPlayback();
+
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = cssWidth;
+    canvas.style.height = cssHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const videoEl = document.createElement("video");
+    videoPlaybackRef.current = videoEl;
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    videoEl.loop = true;
+    videoEl.preload = "auto";
+    videoEl.crossOrigin = "anonymous";
+    videoEl.style.position = "fixed";
+    videoEl.style.top = "0";
+    videoEl.style.left = "0";
+    videoEl.style.width = "1px";
+    videoEl.style.height = "1px";
+    videoEl.style.opacity = "0";
+    videoEl.style.pointerEvents = "none";
+    videoEl.style.zIndex = "-1";
+    videoEl.src = URL.createObjectURL(blob);
+    document.body.appendChild(videoEl);
+
+    let animFrame: number | null = null;
+    const drawLoop = () => {
+      if (!videoEl || videoEl.paused || videoEl.ended) {
+        animFrame = requestAnimationFrame(drawLoop);
+        return;
+      }
+      ctx.clearRect(0, 0, width, height);
+      if (mirrorX || mirrorY) {
+        ctx.save();
+        ctx.setTransform(
+          mirrorX ? -1 : 1,
+          0,
+          0,
+          mirrorY ? -1 : 1,
+          mirrorX ? width : 0,
+          mirrorY ? height : 0,
+        );
+        ctx.drawImage(videoEl, 0, 0, width, height);
+        ctx.restore();
+      } else {
+        ctx.drawImage(videoEl, 0, 0, width, height);
+      }
+      animFrame = requestAnimationFrame(drawLoop);
+    };
+
+    const cleanup = () => {
+      if (animFrame !== null) {
+        cancelAnimationFrame(animFrame);
+      }
+      videoEl.removeEventListener("pause", cleanup);
+      videoEl.removeEventListener("ended", cleanup);
+      videoEl.removeEventListener("error", cleanup);
+      videoEl.removeEventListener("loadeddata", onLoaded);
+    };
+
+    const onLoaded = () => {
+      drawLoop();
+      videoEl.play().catch(() => {
+        // autoplay may be blocked, but drawing still works on manual play events
+      });
+    };
+
+    videoEl.addEventListener("loadeddata", onLoaded);
+    videoEl.addEventListener("pause", cleanup);
+    videoEl.addEventListener("ended", cleanup);
+    videoEl.addEventListener("error", cleanup);
+
+    const stopPlayback = () => {
+      if (animFrame !== null) {
+        cancelAnimationFrame(animFrame);
+        animFrame = null;
+      }
+      if (!videoEl.paused) {
+        videoEl.pause();
+      }
+      cleanup();
+      stopVideoPlayback();
+    };
+
+    videoRenderStopRef.current = stopPlayback;
+  }, [stopAsciiVideo, stopVideoPlayback]);
+
   const loadImage = useCallback(async (source: string) => {
     const cached = cachedImageRef.current;
     if (cached?.src === source) {
@@ -629,36 +904,107 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     return /\.(mp4|mov|webm|ogv|ogg)$/i.test(source);
   }, []);
 
-  const loadVideoMetadata = useCallback(async (source: string) => {
-    const video = document.createElement("video");
-    video.crossOrigin = "anonymous";
-    video.src = source;
-    await new Promise<void>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve();
-      video.onerror = () => reject(new Error("Не удалось загрузить видео для метаданных"));
-    });
-    return video.duration || null;
+  const getVideoSourceCacheId = useCallback((source: string, file?: File) => {
+    if (file) {
+      return `file:${file.name}:${file.size}:${file.lastModified}`;
+    }
+    return `url:${source}`;
   }, []);
 
+  const getSelectedCharset = useCallback((modeValue: string) => {
+    switch (modeValue) {
+      case "GRAYSCALE":
+        return DEFAULT_OPTIONS.charset;
+      case "BRAILLE":
+        return CHARSETS.braille;
+      case "BLOCKS":
+        return CHARSETS.blocks;
+      case "EXTENDED":
+        return CHARSETS.ascii;
+      default: {
+        const custom = customModes.find((item) => item.label === modeValue);
+        return custom?.charset ?? DEFAULT_OPTIONS.charset;
+      }
+    }
+  }, [customModes]);
+
+  const buildVideoRenderCacheKey = useCallback((source: string, file?: File) => {
+    const sourceId = getVideoSourceCacheId(source, file);
+    const selectedCharset = getSelectedCharset(mode);
+    const colorMode = mode === "GRAYSCALE" || activeColor.label === "BLACK & WHITE" ? "grayscale" : "fullcolor";
+
+    return JSON.stringify({
+      sourceId,
+      density,
+      inverted,
+      activeColor: activeColor.label,
+      customColor,
+      monoColor,
+      mirrorX,
+      mirrorY,
+      brightness,
+      contrast,
+      blur,
+      sharpen,
+      invertAmount,
+      mode,
+      selectedCharset,
+      colorMode,
+    });
+  }, [activeColor.label, brightness, blur, contrast, customColor, density, getSelectedCharset, invertAmount, inverted, mode, mirrorX, monoColor, sharpen, customModes, mirrorY]);
+
   const renderVideoSource = useCallback(async (source: string, file?: File) => {
+    stopAsciiVideo();
     setProcessing(true);
     setAsciiReady(false);
-    gifBlobRef.current = null;
+    setProcessingProgress(0);
+    setProcessingLabel("Инициализация видео конвертации...");
     videoBlobRef.current = null;
     const currentRequestId = ++renderRequestIdRef.current;
     processingVideoRef.current = true;
+    let renderCompleted = false;
+
+    const cacheKey = buildVideoRenderCacheKey(source, file);
+    const cachedEntry = videoRenderCacheRef.current.get(cacheKey);
+    if (cachedEntry) {
+      const canvas = outputCanvasRef.current;
+      if (canvas) {
+        await playProcessedVideoOnCanvas(cachedEntry.blob, canvas, cachedEntry.width, cachedEntry.height, cachedEntry.cssWidth, cachedEntry.cssHeight);
+      }
+
+      videoBlobRef.current = cachedEntry.blob;
+      setProcessingLabel("Загружено из кеша");
+      setProcessingProgress(100);
+      setAsciiReady(true);
+      setProcessing(false);
+      processingVideoRef.current = false;
+      renderCompleted = true;
+      return;
+    }
 
     try {
-      currentVideoDurationRef.current = await loadVideoMetadata(source).catch(() => null);
+      const visibleCanvas = outputCanvasRef.current;
+      if (!visibleCanvas) {
+        setProcessingLabel("Ошибка: canvas не найден");
+        setProcessing(false);
+        return;
+      }
 
-      const canvas = outputCanvasRef.current;
-      if (!canvas) return;
+      const renderCanvas = document.createElement("canvas");
+      const visibleCtx = visibleCanvas.getContext("2d");
+      const renderCtx = renderCanvas.getContext("2d");
+      if (!visibleCtx || !renderCtx) {
+        setProcessingLabel("Ошибка: не удалось получить контекст canvas");
+        setProcessing(false);
+        return;
+      }
 
       const charSpacing = 1;
       const charAspect = 0.55;
-      const targetCols = Math.max(1, density);
-      const fontSize = Math.floor(Math.max(240, Math.min(860, canvas.parentElement?.getBoundingClientRect().width ?? 640)) / targetCols / charSpacing);
-      const safeFontSize = Math.max(1, fontSize);
+      const scaledDensity = scaleDensity(density);
+      const targetCols = Math.max(1, scaledDensity);
+      const fontSize = Math.max(2, Math.floor(400 / targetCols / charSpacing));
+      const safeFontSize = Math.max(2, fontSize);
 
       const selectedCharset = (() => {
         switch (mode) {
@@ -679,175 +1025,292 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
 
       const useGrayscale = mode === "GRAYSCALE" || activeColor.label === "BLACK & WHITE";
       const colorMode: ColorMode = useGrayscale ? "grayscale" : "fullcolor";
-      const opts = {
+      const accentColor = activeColor.hex ?? "#00ff41";
+      const asciiOptions = {
         ...DEFAULT_OPTIONS,
         fontSize: safeFontSize,
         charSpacing,
         charAspect,
         charset: selectedCharset,
         colorMode,
+        accentColor,
         brightness: Math.max(-1, Math.min(1, (brightness - 100) / 100)),
         contrast: Math.max(-1, Math.min(1, (contrast - 100) / 100)),
         invert: inverted,
-        hoverStrength: 0,
         renderMode: "ascii" as const,
+        hoverStrength: 0,
       };
 
-      stopAsciiVideo();
+      // Настройка canvas для рендеринга
+      const baseWidth = 800;
+      const baseHeight = 600;
+      visibleCanvas.style.width = `${baseWidth}px`;
+      visibleCanvas.style.height = `${baseHeight}px`;
+      visibleCanvas.width = baseWidth;
+      visibleCanvas.height = baseHeight;
+      renderCanvas.width = visibleCanvas.width;
+      renderCanvas.height = visibleCanvas.height;
 
-      // Prepare for video and GIF recording
-      const capturedFrames: ImageData[] = [];
-      const frameTimestamps: number[] = [];
-      let lastFrameTime = 0;
-      const videoChunks: Blob[] = [];
+      // Подготовка записи видео
+      const recordedChunks: BlobPart[] = [];
+      const fps = 20;
+      const stream = visibleCanvas.captureStream(fps);
+      let recorder: MediaRecorder | undefined;
+      let recorderMimeType = "video/webm";
+      let recordingStarted = false;
+      let videoElement: HTMLVideoElement | null = null;
+      let stop: (() => void) | undefined;
+      let copyAnimFrame: number | null = null;
 
-      // Start canvas recording for video
-      const stream = canvas.captureStream(30);
-      let mediaRecorder: MediaRecorder | null = null;
+      const copyRenderFrame = () => {
+        visibleCtx.save();
+        visibleCtx.setTransform(1, 0, 0, 1, 0, 0);
+        visibleCtx.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
+        if (mirrorX || mirrorY) {
+          visibleCtx.setTransform(
+            mirrorX ? -1 : 1,
+            0,
+            0,
+            mirrorY ? -1 : 1,
+            mirrorX ? visibleCanvas.width : 0,
+            mirrorY ? visibleCanvas.height : 0,
+          );
+        }
+        visibleCtx.drawImage(renderCanvas, 0, 0, visibleCanvas.width, visibleCanvas.height);
+        visibleCtx.restore();
+        copyAnimFrame = requestAnimationFrame(copyRenderFrame);
+      };
 
-      try {
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: "video/webm;codecs=vp8,opus",
-          videoBitsPerSecond: 2500000,
+      const cleanupVideoElement = () => {
+        if (!videoElement) return;
+        try {
+          videoElement.pause();
+          videoElement.src = "";
+          videoElement.removeAttribute("src");
+          videoElement.load();
+          if (videoElement.isConnected) {
+            videoElement.remove();
+          }
+        } catch (error) {
+          console.warn("Ошибка очистки видеоэлемента", error);
+        }
+        videoElement = null;
+      };
+
+      const stopRecording = async () => {
+        if (!recorder || !recordingStarted) return;
+        const activeRecorder = recorder;
+        if (activeRecorder.state !== "inactive") {
+          const stopPromise = new Promise<void>((resolve) => {
+            const onStop = () => {
+              activeRecorder.removeEventListener("stop", onStop);
+              resolve();
+            };
+            activeRecorder.addEventListener("stop", onStop);
+          });
+          activeRecorder.stop();
+          await stopPromise;
+        }
+      };
+
+      if (stream && window.MediaRecorder) {
+        const MediaRecorderClass = window.MediaRecorder;
+        const recorderOptions = (() => {
+          const candidateTypes = [
+            "video/webm;codecs=vp8,opus",
+            "video/webm;codecs=vp8",
+            "video/webm",
+          ];
+          const supportedType = candidateTypes.find((type) => MediaRecorderClass.isTypeSupported?.(type));
+          if (supportedType) {
+            recorderMimeType = supportedType;
+            return { mimeType: supportedType, videoBitsPerSecond: 3_000_000, audioBitsPerSecond: 128_000 };
+          }
+          return undefined;
+        })();
+
+        recorder = recorderOptions ? new MediaRecorderClass(stream, recorderOptions) : new MediaRecorderClass(stream);
+        recorder.addEventListener("dataavailable", (event: BlobEvent) => {
+          if (event.data && event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
         });
-      } catch {
-        // Fallback to default codec
-        mediaRecorder = new MediaRecorder(stream);
+        recorder.start();
+        recordingStarted = true;
+        console.log("[VIDEO] MediaRecorder started");
       }
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) videoChunks.push(e.data);
-      };
+      setProcessingLabel("Рендеринг ASCII видео...");
+      setProcessingProgress(10);
 
-      mediaRecorder.start();
+      // Использование встроенного asciifyVideo для рендеринга в canvas
+      const videoEl = document.createElement("video");
+      videoElement = videoEl;
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      videoEl.preload = "auto";
+      videoEl.crossOrigin = "anonymous";
+      videoEl.loop = true;
+      videoEl.style.position = "fixed";
+      videoEl.style.top = "0";
+      videoEl.style.left = "0";
+      videoEl.style.width = "1px";
+      videoEl.style.height = "1px";
+      videoEl.style.opacity = "0";
+      videoEl.style.pointerEvents = "none";
+      videoEl.style.zIndex = "-1";
+      videoEl.src = source;
+      videoEl.loop = true;
+      videoEl.addEventListener("ended", () => {
+        videoEl.currentTime = 0;
+        videoEl.play().catch(() => {
+          // autoplay may be blocked, but keep the process alive
+        });
+      });
+      document.body.appendChild(videoEl);
 
-      let started = false;
-      let frameCount = 0;
+      await new Promise<void>((resolve, reject) => {
+        const onLoaded = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = () => {
+          cleanup();
+          reject(new Error(`asciifyVideo: failed to load "${source}"`));
+        };
+        const cleanup = () => {
+          videoEl.removeEventListener("loadedmetadata", onLoaded);
+          videoEl.removeEventListener("error", onError);
+        };
+        videoEl.addEventListener("loadedmetadata", onLoaded);
+        videoEl.addEventListener("error", onError);
+        videoEl.load();
+      });
 
-      const stop = await asciifyVideo(source, canvas, {
-        fitTo: canvas.parentElement ?? undefined,
-        options: opts,
-        onReady: () => {
-          if (currentRequestId !== renderRequestIdRef.current) return;
-          if (!started) {
-            started = true;
-            // Don't set ready yet - wait for processing to complete
-          }
-        },
+      await videoEl.play().catch(() => {
+        console.warn("Видео не удалось автоматически запустить, но продолжаем рендеринг");
+      });
+
+      const renderStartTime = performance.now();
+      const videoDurationMs = Number.isFinite(videoEl.duration) && videoEl.duration > 0
+        ? videoEl.duration * 1000
+        : 60000;
+      let lastProgressUpdate = 10;
+
+      const stopFn = await asciifyVideo(videoEl, renderCanvas, {
+        fontSize: safeFontSize,
+        options: asciiOptions,
         onFrame: () => {
           if (currentRequestId !== renderRequestIdRef.current) return;
-          
-          frameCount++;
-
-          // Capture frame for GIF (at most 30 FPS)
-          const now = performance.now();
-          if (now - lastFrameTime > 33) {
-            try {
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                capturedFrames.push(imageData);
-                frameTimestamps.push(now);
-                lastFrameTime = now;
-
-                // Limit to 300 frames
-                if (capturedFrames.length > 300) {
-                  capturedFrames.shift();
-                  frameTimestamps.shift();
-                }
-              }
-            } catch (error) {
-              console.error("Error capturing frame:", error);
-            }
-          }
-
-          if (!started) {
-            started = true;
+          const elapsedMs = performance.now() - renderStartTime;
+          const progressPercent = Math.min(95, Math.floor(10 + (elapsedMs / videoDurationMs) * 85));
+          if (Math.abs(progressPercent - lastProgressUpdate) >= 1) {
+            setProcessingProgress(progressPercent);
+            lastProgressUpdate = progressPercent;
           }
         },
       });
 
+      if (typeof stopFn === "function") {
+        stop = stopFn;
+      }
+
+      copyRenderFrame();
+
+      const wrappedStop = () => {
+        if (copyAnimFrame !== null) {
+          cancelAnimationFrame(copyAnimFrame);
+          copyAnimFrame = null;
+        }
+        if (typeof stop === "function") {
+          stop();
+        }
+        cleanupVideoElement();
+      };
+
+      videoRenderStopRef.current = wrappedStop;
+
+      const durationMs = Number.isFinite(videoEl.duration) && videoEl.duration > 0
+        ? Math.round(videoEl.duration * 1000 + 1500)
+        : 60000;
+      const maxDurationMs = 180000;
+      const waitMs = Math.min(durationMs, maxDurationMs);
+
+      await new Promise<void>((resolve) => {
+        const timer = window.setTimeout(() => {
+          videoEl.removeEventListener("timeupdate", onTimeUpdate);
+          resolve();
+        }, waitMs);
+        const onTimeUpdate = () => {
+          if (!videoEl) return;
+          if (videoEl.duration > 0 && videoEl.currentTime >= videoEl.duration - 0.05) {
+            videoEl.removeEventListener("timeupdate", onTimeUpdate);
+            window.clearTimeout(timer);
+            resolve();
+          }
+        };
+        videoEl.addEventListener("timeupdate", onTimeUpdate);
+      });
+
       if (currentRequestId !== renderRequestIdRef.current) {
-        stop();
-        mediaRecorder?.stop();
+        wrappedStop();
+        await stopRecording();
+        videoRenderStopRef.current = null;
         return;
       }
 
-      videoRenderStopRef.current = stop;
+      // Оставляем рендеринг видео включенным для зацикленного предпросмотра.
+      await stopRecording();
 
-      // Wait for video to complete
-      const videoDuration = currentVideoDurationRef.current || 5;
-      await new Promise(resolve => setTimeout(resolve, (videoDuration + 0.5) * 1000));
-
-      // Stop video recording
-      mediaRecorder.onstop = async () => {
-        if (currentRequestId === renderRequestIdRef.current && videoChunks.length > 0) {
-          const videoBlob = new Blob(videoChunks, { type: "video/webm" });
-          videoBlobRef.current = videoBlob;
-        }
-      };
-
-      mediaRecorder.stop();
-
-      // Create GIF from captured frames
-      if (capturedFrames.length > 0 && currentRequestId === renderRequestIdRef.current) {
-        try {
-          const gif = new GIF({
-            workers: 2,
-            quality: 10,
-            width: capturedFrames[0]?.width || 640,
-            height: capturedFrames[0]?.height || 480,
-            workerScript: "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js",
-          });
-
-          capturedFrames.forEach((frame, index) => {
-            const gifCanvas = document.createElement("canvas");
-            gifCanvas.width = frame.width;
-            gifCanvas.height = frame.height;
-            const ctx = gifCanvas.getContext("2d");
-            if (ctx) {
-              ctx.putImageData(frame, 0, 0);
-            }
-            const delay = index < frameTimestamps.length - 1
-              ? Math.max(33, frameTimestamps[index + 1] - frameTimestamps[index])
-              : 33;
-            gif.addFrame(gifCanvas, { delay });
-          });
-
-          gif.on("finished", (blob: Blob) => {
-            if (currentRequestId === renderRequestIdRef.current) {
-              gifBlobRef.current = blob;
-            }
-          });
-
-          gif.render();
-        } catch (error) {
-          console.error("Error creating GIF:", error);
-        }
+      // Сохранение видео
+      if (recordedChunks.length > 0) {
+        videoBlobRef.current = new Blob(recordedChunks, { type: recorderMimeType });
+        console.log(`[VIDEO] Video blob created: ${videoBlobRef.current.size} bytes`);
+      } else {
+        videoBlobRef.current = null;
+        setProcessingLabel("Не удалось записать видео");
+        setProcessing(false);
+        return;
       }
 
-      if (file && currentRequestId === renderRequestIdRef.current) {
+      const cacheEntry = {
+        blob: videoBlobRef.current as Blob,
+        width: visibleCanvas.width,
+        height: visibleCanvas.height,
+        cssWidth: visibleCanvas.style.width || "800px",
+        cssHeight: visibleCanvas.style.height || "600px",
+      };
+      videoRenderCacheRef.current.set(cacheKey, cacheEntry);
+
+      setAsciiReady(true);
+      setProcessingLabel("Видео готово к скачиванию");
+      setProcessingProgress(100);
+      if (file) {
         setUploadedFile(file);
       }
-
-      // Show ready with a small delay to ensure files are ready
+      renderCompleted = true;
       setTimeout(() => {
         if (currentRequestId === renderRequestIdRef.current) {
-          setAsciiReady(true);
           setProcessing(false);
         }
-      }, 1000);
+      }, 500);
     } catch (error) {
-      console.error("Error processing video:", error);
+      console.error("Ошибка обработки видео:", error);
+      setProcessingLabel("Ошибка при обработке видео");
       setProcessing(false);
     } finally {
       processingVideoRef.current = false;
+      if (!renderCompleted && currentRequestId === renderRequestIdRef.current) {
+        setProcessing(false);
+      }
     }
-  }, [activeColor.label, brightness, contrast, customModes, density, inverted, mode, stopAsciiVideo]);
+  }, [activeColor.label, brightness, blur, contrast, customColor, customModes, density, getSelectedCharset, getVideoSourceCacheId, invertAmount, inverted, mode, mirrorX, monoColor, sharpen, stopAsciiVideo, videoRenderCacheRef]);
 
   const renderImageSource = useCallback(async (source: string, file?: File) => {
     stopAsciiVideo();
     setProcessing(true);
+    setProcessingLabel("Обрабатывается изображение...");
+    setProcessingProgress(0);
     setAsciiReady(false);
     const currentRequestId = ++renderRequestIdRef.current;
 
@@ -879,11 +1342,13 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
       const maxCanvasHeight = maxCanvasSizeRef.current.height;
 
       // Density directly controls number of symbols in width
-      const targetCols = Math.max(1, density);
+      const scaledDensity = scaleDensity(density);
+      const targetCols = Math.max(1, scaledDensity);
       // Calculate font size to fit all columns in the same canvas width
       // No Math.max minimum - allows fontSize to go below 4 for higher density values
       const fontSize = Math.floor(maxCanvasWidth / targetCols / charSpacing);
       const safeFontSize = Math.max(1, fontSize); // Keep minimum at 1 for canvas rendering
+      console.log(`[IMAGE] density=${density} -> scaled=${scaledDensity}, maxCanvasWidth=${maxCanvasWidth}, targetCols=${targetCols}, fontSize=${fontSize}, safeFontSize=${safeFontSize}`);
       // Calculate target rows based on image aspect ratio and char aspect
       const targetRows = Math.max(1, Math.round((targetCols * img.height) / img.width * charAspect));
 
@@ -970,7 +1435,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
       const colorMode: ColorMode = useGrayscale ? "grayscale" : "fullcolor";
       const opts = {
         ...DEFAULT_OPTIONS,
-        fontSize: safeFontSize,
+        fontSize: safeFontSize, // Must be AFTER spread to override default
         charSpacing,
         charAspect,
         charset: selectedCharset,
@@ -1103,6 +1568,8 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
 
       setAsciiDataUrl(canvas.toDataURL("image/png"));
       setAsciiReady(true);
+      setProcessingProgress(100);
+      setProcessingLabel("Изображение готово");
       if (file) {
         setUploadedFile(file);
       }
@@ -1123,6 +1590,13 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     setUploadedFile(file);
     setCurrentSourceName(file.name);
     setCurrentSourceFile(file);
+    // If the selected file is a video, require an explicit "start processing" action
+    if (file.type.startsWith("video/")) {
+      suppressNextAutoStartRef.current = true;
+      setAwaitingStartProcessing(true);
+    } else {
+      setAwaitingStartProcessing(false);
+    }
     setCurrentSource(source);
     setUrlInput("");
     setAsciiReady(false);
@@ -1155,6 +1629,13 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     }
 
     maxCanvasSizeRef.current = null;
+    // For video sources require explicit start if selected from file/URL
+    if (isVideoSourceFile(source, uploadedFile ?? undefined)) {
+      suppressNextAutoStartRef.current = true;
+      setAwaitingStartProcessing(true);
+      setCurrentSource(source);
+      return;
+    }
     setCurrentSource(source);
     await renderMediaSource(source, uploadedFile ?? undefined);
   };
@@ -1167,13 +1648,13 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const getFileExtensionFromUrl = (source: string) => {
     try {
       const pathname = new URL(source).pathname;
-      const match = pathname.match(/\.(gif|mp4|mov|webm|ogg)(?:[?#]|$)/i);
+      const match = pathname.match(/\.(mp4|mov|webm|ogg)(?:[?#]|$)/i);
       return match ? match[0].toLowerCase() : "";
     } catch {
       return "";
@@ -1182,7 +1663,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
 
   const downloadFileSource = async (file: File | null | undefined, source?: string, defaultName = "download") => {
     if (file) {
-      downloadBlob(file, file.name || `${defaultName}${file.type === "image/gif" ? ".gif" : file.type.startsWith("video/") ? ".mp4" : ""}`);
+      downloadBlob(file, file.name || `${defaultName}${file.type.startsWith("video/") ? ".mp4" : ""}`);
       return;
     }
     if (!source) return;
@@ -1200,7 +1681,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   const downloadCurrentSourceFile = async (allowedTypes: RegExp, defaultName: string) => {
     if (!currentSource && !currentSourceFile) return;
     if (currentSourceFile && allowedTypes.test(currentSourceFile.type)) {
-      downloadBlob(currentSourceFile, currentSourceFile.name || `${defaultName}${currentSourceFile.type === "image/gif" ? ".gif" : ".mp4"}`);
+      downloadBlob(currentSourceFile, currentSourceFile.name || `${defaultName}${currentSourceFile.type.startsWith("video/") ? ".mp4" : ""}`);
       return;
     }
 
@@ -1209,21 +1690,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
     }
   };
 
-  const handleDownloadGif = async () => {
-    if (!gifBlobRef.current) {
-      alert("GIF ещё не готов к скачиванию. Дождитесь завершения обработки.");
-      return;
-    }
 
-    const url = URL.createObjectURL(gifBlobRef.current);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `ascii_animation_${Date.now()}.gif`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   const handleDownloadVideo = async () => {
     if (!videoBlobRef.current) {
@@ -1231,14 +1698,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
       return;
     }
 
-    const url = URL.createObjectURL(videoBlobRef.current);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `ascii_video_${Date.now()}.webm`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadBlob(videoBlobRef.current, `ascii_video_${Date.now()}.webm`);
   };
 
   const renderMediaSource = useCallback(async (source: string, file?: File) => {
@@ -1250,12 +1710,15 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   }, [isVideoSourceFile, renderImageSource, renderVideoSource]);
 
   const scheduleMediaRender = useCallback((source: string, file?: File, delay = 120) => {
+    // Immediately stop any pending render
     stopPendingRender();
+    stopAsciiVideo();
+    // Schedule new render with delay
     renderTimerRef.current = window.setTimeout(() => {
       renderTimerRef.current = null;
       renderMediaSource(source, file);
     }, delay);
-  }, [renderMediaSource, stopPendingRender]);
+  }, [renderMediaSource, stopPendingRender, stopAsciiVideo]);
 
   const handlePaste = useCallback((event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -1290,9 +1753,18 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
 
   useEffect(() => {
     if (!currentSource) return;
+    // If we explicitly suppressed the next auto-start (to avoid race), skip once
+    if (suppressNextAutoStartRef.current) {
+      suppressNextAutoStartRef.current = false;
+      return;
+    }
+    // If this is a video and user opted to wait, do not auto-start processing
+    if (isVideoSourceFile(currentSource, currentSourceFile ?? undefined) && awaitingStartProcessing) {
+      return;
+    }
     scheduleMediaRender(currentSource, currentSourceFile ?? undefined);
     return () => stopPendingRender();
-  }, [currentSource, currentSourceFile, density, inverted, activeColor, monoColor, mirrorX, mirrorY, brightness, contrast, blur, sharpen, invertAmount, mode, renderMediaSource, scheduleMediaRender, stopPendingRender]);
+  }, [currentSource, currentSourceFile, density, inverted, activeColor, monoColor, mirrorX, mirrorY, brightness, contrast, blur, sharpen, invertAmount, mode, renderMediaSource, scheduleMediaRender, stopPendingRender, isVideoSourceFile, awaitingStartProcessing]);
 
   const toDataUrlFromFile = (file: File) => new Promise<string>((resolve, reject) => {
     const fr = new FileReader();
@@ -1469,13 +1941,10 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
 
 
   const clearCanvas = () => {
-    // Preserve restoreState whenever there is a currentSource so the
-    // "вернуть" button appears after clearing, regardless of whether
-    // the source originated from an upload, gallery, or URL.
-    if (currentSource) {
+    if (currentSource && (uploadedFile || currentSourceFile || urlInput)) {
       setRestoreState({
         source: currentSource,
-        file: currentSourceFile ?? uploadedFile ?? null,
+        file: currentSourceFile ?? uploadedFile,
         name: currentSourceName,
         urlInput,
       });
@@ -1516,7 +1985,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   };
 
   const bumpDensity = (dir: 1 | -1) => {
-    setDensity((v) => Math.min(140, Math.max(20, v + dir * 20)));
+    setDensity((v) => Math.min(140, Math.max(0, v + dir * 20)));
   };
 
   return (
@@ -1578,15 +2047,25 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
               </p>
             )}
             <SmallButton label="ВЫБРАТЬ ФАЙЛ" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} />
-            <input ref={fileInputRef} type="file" accept="image/*,video/*,.gif" className="hidden" onChange={(e) => {
+            <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => {
               const f = e.target.files?.[0];
               if (!f) return;
               handleFileSelect(f);
             }} />
           </div>
 
+          <div className="flex items-center gap-2 mb-4" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#333" }}>
+            {currentSource && isVideoSourceFile(currentSource, currentSourceFile ?? undefined) && awaitingStartProcessing && (
+              <SmallButton label={processing ? "Идёт обработка..." : "НАЧАТЬ ОБРАБОТКУ"} onClick={() => {
+                if (!currentSource) return;
+                setAwaitingStartProcessing(false);
+                scheduleMediaRender(currentSource, currentSourceFile ?? undefined, 20);
+              }} disabled={processing} />
+            )}
+          </div>
+
           <div className="flex items-center justify-between mb-4" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "#333", borderTop: "1px solid #1a1a1a", paddingTop: "8px" }}>
-            <span>JPEG, PNG, GIF, MP4, MOV, WEBM</span>
+            <span>JPEG, PNG, MP4, MOV, WEBM</span>
             <span>МАКС. РАЗМЕР: 150MB</span>
           </div>
 
@@ -1755,50 +2234,56 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
                 MIRROR Y{mirrorY ? " ✓" : ""}
               </button>
 
-              {/* Color dropdown with preview */}
-              <Dropdown
-                value={colorLabel}
-                options={COLOR_OPTIONS.map((c) => c.label)}
-                onChange={setColorLabel}
-                renderOption={(opt) => {
-                  const c = COLOR_OPTIONS.find((x) => x.label === opt);
-                  const optionColor = opt === "CUSTOM"
-                    ? customColor
-                    : opt === "BLACK & WHITE"
-                      ? "#fff"
-                      : c?.hex;
-                  return (
-                    <span className="flex items-center gap-2">
-                      <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: optionColor || "linear-gradient(135deg,#ff1744,#00ff41,#40c4ff)", display: "inline-block", border: "1px solid #333", flexShrink: 0 }} />
-                      {opt}
-                    </span>
-                  );
-                }}
-              />
-              {colorLabel === "CUSTOM" && (
-                <input
-                  type="color"
-                  value={customColor}
-                  onChange={(event) => setCustomColor(event.target.value)}
-                  className="ml-2 h-8 w-8 p-0 border border-[#333] bg-transparent cursor-pointer"
-                  style={{ appearance: "none", borderRadius: "4px" }}
-                />
-              )}
+              {/* Color dropdown with preview (hidden for videos) */}
+              {!isVideoSource && (
+                <>
+                  <Dropdown
+                    value={colorLabel}
+                    options={COLOR_OPTIONS.map((c) => c.label)}
+                    onChange={setColorLabel}
+                    renderOption={(opt) => {
+                      const c = COLOR_OPTIONS.find((x) => x.label === opt);
+                      const optionColor = opt === "CUSTOM"
+                        ? customColor
+                        : opt === "BLACK & WHITE"
+                          ? "#fff"
+                          : c?.hex;
+                      return (
+                        <span className="flex items-center gap-2">
+                          <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: optionColor || "linear-gradient(135deg,#ff1744,#00ff41,#40c4ff)", display: "inline-block", border: "1px solid #333", flexShrink: 0 }} />
+                          {opt}
+                        </span>
+                      );
+                    }}
+                  />
+                  {colorLabel === "CUSTOM" && (
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={(event) => setCustomColor(event.target.value)}
+                      className="ml-2 h-8 w-8 p-0 border border-[#333] bg-transparent cursor-pointer"
+                      style={{ appearance: "none", borderRadius: "4px" }}
+                    />
+                  )}
 
-              {activeColor.hex && (
-                <span
-                  className="flex items-center gap-1.5 px-2 py-1 border border-[#1e1e1e]"
-                  style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: activeColor.hex }}
-                >
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: activeColor.hex, display: "inline-block" }} />
-                  {activeColor.label}
-                </span>
+                  {activeColor.hex && (
+                    <span
+                      className="flex items-center gap-1.5 px-2 py-1 border border-[#1e1e1e]"
+                      style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: activeColor.hex }}
+                    >
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: activeColor.hex, display: "inline-block" }} />
+                      {activeColor.label}
+                    </span>
+                  )}
+                </>
               )}
             </div>
-            <Dropdown value={editingMode} options={["PHOTO EDITING", "BRIGHTNESS", "CONTRAST", "SHARPEN", "BLUR", "INVERT"]} onChange={setEditingMode} />
+            { !isVideoSource && (
+              <Dropdown value={editingMode} options={["PHOTO EDITING", "BRIGHTNESS", "CONTRAST", "SHARPEN", "BLUR", "INVERT"]} onChange={setEditingMode} />
+            ) }
           </div>
 
-          {editingMode === "BRIGHTNESS" && (
+          { !isVideoSource && editingMode === "BRIGHTNESS" && (
             <div className="flex items-center gap-3 mb-3" style={{ padding: "0 20px" }}>
               <label style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8ffc8", minWidth: "80px" }}>
                 ЯРКОСТЬ
@@ -1817,7 +2302,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
             </div>
           )}
 
-          {editingMode === "CONTRAST" && (
+          { !isVideoSource && editingMode === "CONTRAST" && (
             <div className="flex items-center gap-3 mb-3" style={{ padding: "0 20px" }}>
               <label style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8ffc8", minWidth: "80px" }}>
                 КОНТРАСТ
@@ -1836,7 +2321,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
             </div>
           )}
 
-          {editingMode === "BLUR" && (
+          { !isVideoSource && editingMode === "BLUR" && (
             <div className="flex items-center gap-3 mb-3" style={{ padding: "0 20px" }}>
               <label style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8ffc8", minWidth: "80px" }}>
                 РАЗМЫТИЕ
@@ -1855,7 +2340,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
             </div>
           )}
 
-          {editingMode === "SHARPEN" && (
+          { !isVideoSource && editingMode === "SHARPEN" && (
             <div className="flex items-center gap-3 mb-3" style={{ padding: "0 20px" }}>
               <label style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8ffc8", minWidth: "80px" }}>
                 РЕЗКОСТЬ
@@ -1874,7 +2359,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
             </div>
           )}
 
-          {editingMode === "INVERT" && (
+          { !isVideoSource && editingMode === "INVERT" && (
             <div className="flex items-center gap-3 mb-3" style={{ padding: "0 20px" }}>
               <label style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8ffc8", minWidth: "80px" }}>
                 ИНВЕРСИЯ
@@ -1934,10 +2419,24 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
               </div>
             )}
             {processing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", color: "#c8c8c8", letterSpacing: "0.05em" }}>
-                  ОБРАБОТКА...
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 pointer-events-none">
+                <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", color: "#c8c8c8", letterSpacing: "0.05em", textAlign: "center" }}>
+                  {processingLabel || "ОБРАБОТКА..."}
                 </p>
+                <div className="mt-3 w-4/5 max-w-[320px] rounded-full overflow-hidden border border-[#333] bg-[#111]/80">
+                  <div
+                    style={{
+                      width: `${processingProgress}%`,
+                      minWidth: "4%",
+                      height: "6px",
+                      background: "linear-gradient(90deg, #00ff41, #7fff7f, #00bfff)",
+                      transition: "width 0.2s ease",
+                    }}
+                  />
+                </div>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#c8c8c8", marginTop: "6px" }}>
+                  {processingProgress}%
+                </span>
               </div>
             )}
           </div>
@@ -1948,9 +2447,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
               { label: "КОПИЯ",   icon: <Copy size={11} />,        action: handleCopyText },
               { label: "ТЕКСТ",   icon: <Type size={11} />, action: handleDownloadText },
               { label: "PNG",     icon: <ImageIcon size={11} />, action: handleDownloadPng },
-              { label: "GIF",     icon: <Film size={11} />, action: handleDownloadGif },
               { label: "ВИДЕО",   icon: <Film size={11} />, action: handleDownloadVideo },
-              { label: "ПРОЧЕЕ",  icon: <MoreHorizontal size={11} /> },
               { label: "ГАЛЕРЕЯ", icon: <Grid3X3 size={11} />,     action: () => onNavigate("gallery") },
             ].map(({ label, icon, action }) => (
               <BottomActionButton key={label} label={label} icon={icon} onClick={action} />
@@ -2075,7 +2572,7 @@ function ConversionPage({ onNavigate, onSaveGalleryItem, initialAsciiSrc, initia
   );
 }
 
-function SmallButton({ label, onClick, accent = false }: { label: string; onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void; accent?: boolean }) {
+function SmallButton({ label, onClick, accent = false, disabled = false }: { label: string; onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void; accent?: boolean; disabled?: boolean }) {
   const [pressed, setPressed] = useState(false);
   return (
     <button
@@ -2083,6 +2580,7 @@ function SmallButton({ label, onClick, accent = false }: { label: string; onClic
       onMouseUp={() => setPressed(false)}
       onMouseLeave={() => setPressed(false)}
       onClick={onClick}
+      disabled={disabled}
       style={{
         fontFamily: "'Share Tech Mono', monospace",
         fontSize: "10px",
@@ -2093,7 +2591,8 @@ function SmallButton({ label, onClick, accent = false }: { label: string; onClic
         color: accent ? "#c8c8c8" : "#888",
         transform: pressed ? "scale(0.95)" : "scale(1)",
         transition: "all 0.1s",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
       }}
     >
       {label}
@@ -2207,7 +2706,6 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
 
   const totalFiles = items.length;
   const imageFiles = items.filter((item) => item.ext === "png").length;
-  const gifFiles = items.filter((item) => item.ext === "gif").length;
   const videoFiles = items.filter((item) => item.ext === "mp4").length;
   const storageUsed = items.reduce((sum, item) => sum + (item.size ?? 0), 0);
   const canDeleteWithoutConfirm = skipDeleteConfirm;
@@ -2230,22 +2728,16 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
 
   const filtered = items.filter((item) => {
     const ms = item.name.toLowerCase().includes(search.toLowerCase());
-    const mt = filterType === "ALL" || (filterType === "IMAGE" && item.ext === "png") || (filterType === "GIF" && item.ext === "gif") || (filterType === "VIDEO" && item.ext === "mp4");
+    const mt = filterType === "ALL" || (filterType === "IMAGE" && item.ext === "png") || (filterType === "VIDEO" && item.ext === "mp4");
     return ms && mt;
   });
 
   const sorted = filtered.slice().sort((a, b) => {
     switch (sortBy) {
-      case "DATE (NEWEST)": {
-        const ta = parseSavedCreatedAt(a) ?? 0;
-        const tb = parseSavedCreatedAt(b) ?? 0;
-        return tb - ta;
-      }
-      case "DATE (OLDEST)": {
-        const ta = parseSavedCreatedAt(a) ?? 0;
-        const tb = parseSavedCreatedAt(b) ?? 0;
-        return ta - tb;
-      }
+      case "DATE (NEWEST)":
+        return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+      case "DATE (OLDEST)":
+        return (a.createdAt ?? 0) - (b.createdAt ?? 0);
       case "NAME (A-Z)":
         return a.name.localeCompare(b.name);
       case "NAME (Z-A)":
@@ -2269,7 +2761,6 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
             ["TOTAL FILES", String(totalFiles)],
             ["IMAGES", String(imageFiles)],
             ["VIDEOS", String(videoFiles)],
-            ["GIFS", String(gifFiles)],
             ["STORAGE USED", formatFileSize(storageUsed)],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between items-center mb-1">
@@ -2283,7 +2774,7 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
 
         <GSection title="FILTERS">
           <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "9px", color: "#444", marginBottom: "6px" }}>TYPE</p>
-          {["ALL","IMAGE","GIF","VIDEO"].map((t) => (
+          {["ALL","IMAGE","VIDEO"].map((t) => (
             <label key={t} className="flex items-center gap-1.5 mb-1.5 cursor-pointer">
               <div
                 onClick={() => setFilterType(t)}
@@ -2316,8 +2807,6 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
         </GSection>
 
         <DottedDivider />
-
-        {/* Load more removed — pagination not implemented */}
       </div>
 
       {/* ── MAIN GALLERY ── */}
@@ -2411,7 +2900,7 @@ function GalleryPage({ onNavigate, items, onDeleteItem, onSelectItem, skipDelete
                     <td className="py-2 pr-8" style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#888" }}>{item.name}</td>
                     <td style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#444" }}>{item.w}x{item.h}</td>
                     <td style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#444" }}>{item.ext}</td>
-                    <td style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#444" }}>{formatTimeAgo(parseSavedCreatedAt(item), item.time)}</td>
+                    <td style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", color: "#444" }}>{formatTimeAgo(item.createdAt, item.time)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2547,7 +3036,7 @@ function GalleryCard({ item, onDelete, onClick }: { item: GalleryItem; onDelete?
           {item.ext} {item.w}x{item.h}
         </p>
         <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "8px", color: "#2a2a2a" }}>
-          {formatTimeAgo(parseSavedCreatedAt(item), item.time)}
+          {formatTimeAgo(item.createdAt, item.time)}
         </p>
       </div>
     </div>
@@ -2598,6 +3087,7 @@ export default function App() {
   });
   const [selectedGallerySrc, setSelectedGallerySrc] = useState<string | undefined>(undefined);
   const [selectedGalleryName, setSelectedGalleryName] = useState<string | undefined>(undefined);
+  const [selectedGalleryIsProcessedVideo, setSelectedGalleryIsProcessedVideo] = useState<boolean>(false);
   const [skipDeleteConfirm, setSkipDeleteConfirm] = useState(false);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(() => {
     if (typeof window === "undefined") return GALLERY_ITEMS;
@@ -2664,19 +3154,21 @@ export default function App() {
     setGalleryItems((prev) => [item, ...prev]);
   };
 
-  const handleNavigate = (target: Page, initialAsciiSrc?: string, initialName?: string) => {
+  const handleNavigate = (target: Page, initialAsciiSrc?: string, initialName?: string, initialIsProcessedVideo = false) => {
     setPage(target);
     if (target === "conversion") {
       setSelectedGallerySrc(initialAsciiSrc);
       setSelectedGalleryName(initialName);
+      setSelectedGalleryIsProcessedVideo(initialIsProcessedVideo);
     } else {
       setSelectedGallerySrc(undefined);
       setSelectedGalleryName(undefined);
+      setSelectedGalleryIsProcessedVideo(false);
     }
   };
 
   return (
-    <div className="app-root flex flex-col" style={{ height: "100vh", overflow: "hidden", background: "#000" }}>
+    <div className="app-root flex flex-col" style={{ height: "100vh", overflow: "hidden", background: "#0e0e0e" }}>
       <Header page={page} onNavigate={handleNavigate} />
       {page === "home" && <HomePage onNavigate={handleNavigate} />}
       {page === "conversion" && (
@@ -2694,7 +3186,7 @@ export default function App() {
           skipDeleteConfirm={skipDeleteConfirm}
           setSkipDeleteConfirm={setSkipDeleteConfirm}
           onDeleteItem={(id) => setGalleryItems((prev) => prev.filter((i) => i.id !== id))}
-          onSelectItem={(item) => handleNavigate("conversion", item.originalSrc ?? item.src, item.name)}
+          onSelectItem={(item) => handleNavigate("conversion", item.originalSrc ?? item.src, item.name, !!item.isProcessedVideo)}
         />
       )}
     </div>

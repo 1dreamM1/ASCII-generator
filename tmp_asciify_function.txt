@@ -1,0 +1,1 @@
+async function Rt(t,e,{fontSize:o,artStyle:n="classic",options:r={},fitTo:i,objectFit:c,objectPosition:l,scale:h,width:f,height:d,bleed:m,preExtract:u=!1,fps:g,maxRenderDimension:M=2048,trim:p,scroll:w,maxCachedFrames:b=90,onReady:v,onFrame:x}
